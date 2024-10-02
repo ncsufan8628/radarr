@@ -248,6 +248,7 @@ function Naming() {
                 translate('MovieFolderFormatHelpText'),
                 ...movieFolderFormatHelpTexts,
               ]}
+              helpTextWarning={translate('MovieFolderFormatHelpTextWarning')}
               errors={[
                 ...movieFolderFormatErrors,
                 ...settings.movieFolderFormat.errors,
