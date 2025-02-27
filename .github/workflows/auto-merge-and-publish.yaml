@@ -2,11 +2,11 @@ name: Sync, Build, and Release Radarr
 
 on:
   schedule:
-    - cron: '0 3 * * *' # Runs daily at 3 AM UTC
-  workflow_dispatch: # Allows manual trigger
+    - cron: '0 3 * * *'  # Runs daily at 3 AM UTC
+  workflow_dispatch:  # Allows manual trigger
 
 jobs:
-  sync_and_build:
+  sync_and_merge:
     runs-on: ubuntu-latest
 
     steps:
@@ -31,49 +31,59 @@ jobs:
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
 
-      - name: Add Radarr Upstream and Sync
+      - name: Add Radarr Upstream
         run: |
           git remote add upstream https://x-access-token:${{ secrets.PA_TOKEN }}@github.com/Radarr/Radarr.git
           git fetch upstream
+
+      - name: Sync with Latest Radarr Master
+        run: |
+          git fetch --all
           git checkout -B master origin/master
-          git merge --ff-only upstream/master || echo "⚠️ Merge conflicts detected, manual fix required!"
+          git merge --ff-only upstream/master || echo "Merge conflicts detected"
           git push origin master
         env:
           GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
+
+      - name: Merge Fix Branch (PR #9820)
+        run: |
+          git fetch upstream pull/9820/head:fix-remux-wrong-detection
+          git merge fix-remux-wrong-detection --no-edit || echo "Merge conflicts detected"
+          git push origin master
+        env:
+          GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
+
+  build_and_release:
+    needs: sync_and_merge
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Updated Code
+        uses: actions/checkout@v4
+        with:
+          repository: ncsufan8628/radarr
+          token: ${{ secrets.PA_TOKEN }}
+          fetch-depth: 0
 
       - name: Install Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y dotnet-sdk-8.0 jq
 
-      - name: Verify .NET and System Info
-        run: |
-          dotnet --info
-          uname -a
-          lscpu
-          df -h
-
-      - name: Debug Radarr Build Script
-        run: |
-          echo "🔍 Checking build script..."
-          if [ -f build.sh ]; then
-            chmod +x build.sh
-            ./build.sh --help || echo "⚠️ build.sh --help failed!"
-          else
-            echo "❌ build.sh not found!"
-            exit 1
-          fi
-
-      - name: Build Radarr (Capture Errors)
+      - name: Build Radarr
         run: |
           git submodule update --init --recursive
-          ./build.sh --target=linux-musl-x64 2>&1 | tee build_output.log || { echo "❌ Build failed!"; exit 1; }
+          echo "🔍 Running build script..."
+          chmod +x build.sh
+          set -x  # Enable debug mode
+          ./build.sh --target=linux-musl-x64 | tee build_output.log
+          set +x  # Disable debug mode
 
-      - name: Show Build Logs
+      - name: Show Build Logs (If Build Fails)
         if: failure()
         run: cat build_output.log
 
-      - name: Verify Build Output
+      - name: Locate Build Output
         run: |
           OUTPUT_DIR=$(find ./bin -type d -name "publish" | head -n 1)
           if [ -z "$OUTPUT_DIR" ]; then
@@ -83,15 +93,20 @@ jobs:
           echo "✅ Found output at: $OUTPUT_DIR"
           echo "OUTPUT_PATH=$OUTPUT_DIR" >> $GITHUB_ENV
 
+      - name: Package Radarr for Release
+        run: |
+          RELEASE_NAME="radarr-$(date +%Y%m%d-%H%M%S)"
+          tar -czvf $RELEASE_NAME.tar.gz -C "$OUTPUT_PATH" .
+          echo "RELEASE_FILE=$RELEASE_NAME.tar.gz" >> $GITHUB_ENV
+
       - name: Create GitHub Release
-        if: success()
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: latest
-          name: Radarr Build - Latest
-          body: "🚀 Auto-built Radarr with the latest updates."
+          files: ${{ env.RELEASE_FILE }}
+          tag_name: "radarr-build-${{ github.run_id }}"
+          name: "Radarr Build - ${{ github.run_id }}"
+          body: "Automated build of Radarr including PR #9820"
           draft: false
           prerelease: false
-          files: ${{ env.OUTPUT_PATH }}/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
