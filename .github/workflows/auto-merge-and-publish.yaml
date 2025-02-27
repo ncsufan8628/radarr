@@ -46,6 +46,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y dotnet-sdk-8.0 jq
 
+      - name: Verify .NET and System Info
+        run: |
+          dotnet --info
+          uname -a
+          lscpu
+          df -h
+
       - name: Debug Radarr Build Script
         run: |
           echo "🔍 Checking build script..."
@@ -57,12 +64,14 @@ jobs:
             exit 1
           fi
 
-      - name: Build Radarr
+      - name: Build Radarr (Capture Errors)
         run: |
           git submodule update --init --recursive
-          ./build.sh --target=linux-musl-x64 | tee build_output.log
-          echo "🔍 Checking build output..."
-          ls -lR ./bin || echo "❌ No bin directory found!"
+          ./build.sh --target=linux-musl-x64 2>&1 | tee build_output.log || { echo "❌ Build failed!"; exit 1; }
+
+      - name: Show Build Logs
+        if: failure()
+        run: cat build_output.log
 
       - name: Verify Build Output
         run: |
