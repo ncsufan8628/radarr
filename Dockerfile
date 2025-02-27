@@ -34,7 +34,7 @@ RUN chmod +x /app/radarr/bin/Radarr
 RUN echo -e "UpdateMethod=docker\nBranch=custom\nPackageVersion=${VERSION}\nPackageAuthor=ncsufan8628" > /app/radarr/package_info
 
 # copy local files
-COPY root/ /
+#COPY root/ /
 
 # Expose the default Radarr port
 EXPOSE 7878
