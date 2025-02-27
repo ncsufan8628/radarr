@@ -1,4 +1,4 @@
-name: Sync, Merge Fix, and Publish Radarr
+name: Sync, Merge Fix, and Release Radarr
 
 on:
   schedule:
@@ -53,7 +53,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
 
-  build_and_publish:
+  build_and_release:
     needs: sync_and_merge
     runs-on: ubuntu-latest
 
@@ -74,22 +74,33 @@ jobs:
         run: |
           git submodule update --init --recursive
           ./build.sh --target=linux-musl-x64
-          echo "🔍 Checking output structure..."
-          find . -type d -name "publish"
-          ls -lR ./bin | head -n 100  # Limit output for easier debugging
+          echo "🔍 Checking output..."
+          ls -lR ./bin | head -n 100
 
-      - name: Log in to DockerHub
-        uses: docker/login-action@v3
+      - name: Find Build Output
+        id: find_output
+        run: |
+          OUTPUT_DIR=$(find ./bin -type d -name "publish" | head -n 1)
+          if [ -z "$OUTPUT_DIR" ]; then
+            echo "❌ No publish directory found!"
+            exit 1
+          fi
+          echo "Found output at: $OUTPUT_DIR"
+          echo "OUTPUT_PATH=$OUTPUT_DIR" >> $GITHUB_ENV
+
+      - name: Package Build
+        run: |
+          mkdir -p release
+          cp -r ${{ env.OUTPUT_PATH }} release/Radarr
+          tar -czvf release/Radarr.tar.gz -C release Radarr
+          ls -l release
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and Tag Docker Image
-        run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/radarr:latest .
-          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/radarr:latest ${{ secrets.DOCKERHUB_USERNAME }}/radarr:master
-
-      - name: Push Docker Image
-        run: |
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/radarr:latest
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/radarr:master
+          token: ${{ secrets.PA_TOKEN }}
+          tag_name: nightly-${{ github.run_id }}
+          name: Nightly Build ${{ github.run_id }}
+          draft: false
+          prerelease: true
+          files: release/Radarr.tar.gz
