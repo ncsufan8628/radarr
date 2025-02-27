@@ -28,7 +28,7 @@ RUN mkdir -p /app/radarr/bin
 COPY ./Radarr /app/radarr/bin
 
 # Set permissions
-RUN chmod +x /app/radarr/bin/Radarr
+RUN chmod +x /app/radarr/bin/radarr
 
 # Create package info file
 RUN echo -e "UpdateMethod=docker\nBranch=custom\nPackageVersion=${VERSION}\nPackageAuthor=ncsufan8628" > /app/radarr/package_info
