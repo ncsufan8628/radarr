@@ -1,6 +1,4 @@
 # syntax=docker/dockerfile:1
-
-# Use LinuxServer.io's base Alpine image
 FROM ghcr.io/linuxserver/baseimage-alpine:3.21
 
 # Set version label
@@ -23,8 +21,8 @@ RUN apk add --no-cache \
 # Create directories for Radarr
 RUN mkdir -p /app/radarr/bin
 
-# Copy your custom-built Radarr from the workflow
-COPY ./Radarr /app/radarr/bin
+# Copy only the compiled Radarr binary (Ensure this is correctly built first)
+COPY ./Radarr/Radarr /app/radarr/bin/Radarr
 
 # Set permissions
 RUN chmod +x /app/radarr/bin/Radarr
