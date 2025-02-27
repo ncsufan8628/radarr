@@ -1,4 +1,4 @@
-name: Sync, Merge Fix, and Release Radarr
+name: Sync, Build, and Release Radarr
 
 on:
   schedule:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch: # Allows manual trigger
 
 jobs:
-  sync_and_merge:
+  sync_and_build:
     runs-on: ubuntu-latest
 
     steps:
@@ -31,76 +31,58 @@ jobs:
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
 
-      - name: Add Radarr Upstream
+      - name: Add Radarr Upstream and Sync
         run: |
           git remote add upstream https://x-access-token:${{ secrets.PA_TOKEN }}@github.com/Radarr/Radarr.git
           git fetch upstream
-
-      - name: Sync with Latest Radarr Master
-        run: |
-          git fetch --all
           git checkout -B master origin/master
-          git merge --ff-only upstream/master || echo "Merge conflicts detected"
+          git merge --ff-only upstream/master || echo "⚠️ Merge conflicts detected, manual fix required!"
           git push origin master
         env:
           GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
-
-      - name: Merge Fix Branch (PR #9820)
-        run: |
-          git fetch upstream pull/9820/head:fix-remux-wrong-detection
-          git merge fix-remux-wrong-detection --no-edit || echo "Merge conflicts detected"
-          git push origin master
-        env:
-          GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
-
-  build_and_release:
-    needs: sync_and_merge
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Updated Code
-        uses: actions/checkout@v4
-        with:
-          repository: ncsufan8628/radarr
-          token: ${{ secrets.PA_TOKEN }}
-          fetch-depth: 0
 
       - name: Install Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y dotnet-sdk-8.0 jq
 
+      - name: Debug Radarr Build Script
+        run: |
+          echo "🔍 Checking build script..."
+          if [ -f build.sh ]; then
+            chmod +x build.sh
+            ./build.sh --help || echo "⚠️ build.sh --help failed!"
+          else
+            echo "❌ build.sh not found!"
+            exit 1
+          fi
+
       - name: Build Radarr
         run: |
           git submodule update --init --recursive
-          ./build.sh --target=linux-musl-x64
-          echo "🔍 Checking output..."
-          ls -lR ./bin | head -n 100
+          ./build.sh --target=linux-musl-x64 | tee build_output.log
+          echo "🔍 Checking build output..."
+          ls -lR ./bin || echo "❌ No bin directory found!"
 
-      - name: Find Build Output
-        id: find_output
+      - name: Verify Build Output
         run: |
           OUTPUT_DIR=$(find ./bin -type d -name "publish" | head -n 1)
           if [ -z "$OUTPUT_DIR" ]; then
             echo "❌ No publish directory found!"
             exit 1
           fi
-          echo "Found output at: $OUTPUT_DIR"
+          echo "✅ Found output at: $OUTPUT_DIR"
           echo "OUTPUT_PATH=$OUTPUT_DIR" >> $GITHUB_ENV
 
-      - name: Package Build
-        run: |
-          mkdir -p release
-          cp -r ${{ env.OUTPUT_PATH }} release/Radarr
-          tar -czvf release/Radarr.tar.gz -C release Radarr
-          ls -l release
-
       - name: Create GitHub Release
+        if: success()
         uses: softprops/action-gh-release@v2
         with:
-          token: ${{ secrets.PA_TOKEN }}
-          tag_name: nightly-${{ github.run_id }}
-          name: Nightly Build ${{ github.run_id }}
+          tag_name: latest
+          name: Radarr Build - Latest
+          body: "🚀 Auto-built Radarr with the latest updates."
           draft: false
-          prerelease: true
-          files: release/Radarr.tar.gz
+          prerelease: false
+          files: ${{ env.OUTPUT_PATH }}/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
