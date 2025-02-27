@@ -25,7 +25,7 @@ RUN \
 RUN mkdir -p /app/radarr/bin
 
 # Copy your custom build of Radarr into the container
-COPY ./Radarr /app/radarr/bin
+COPY ./docker-build/Radarr /app/radarr/bin
 
 # Set permissions
 RUN chmod +x /app/radarr/bin/Radarr
