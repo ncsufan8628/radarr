@@ -38,7 +38,8 @@ jobs:
 
       - name: Sync with Latest Radarr Master
         run: |
-          git checkout master
+          git fetch --all
+          git checkout -B master origin/master  # Ensures we are on the correct master
           git merge --ff-only upstream/master || echo "Merge conflicts detected"
           git push origin master
         env:
