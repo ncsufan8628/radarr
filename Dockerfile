@@ -1,43 +1,39 @@
 # syntax=docker/dockerfile:1
 
+# Use LinuxServer.io's base Alpine image
 FROM ghcr.io/linuxserver/baseimage-alpine:3.21
 
-# set version label
+# Set version label
 ARG BUILD_DATE
 ARG VERSION
-LABEL build_version="Custom Radarr Build: ${VERSION} Build-date: ${BUILD_DATE}"
+LABEL build_version="Custom Radarr version:- ${VERSION} Build-date:- ${BUILD_DATE}"
 LABEL maintainer="ncsufan8628"
 
-# environment settings
+# Set environment variables
 ENV XDG_CONFIG_HOME="/config/xdg" \
-  COMPlus_EnableDiagnostics=0 \
-  TMPDIR=/run/radarr-temp
+    COMPlus_EnableDiagnostics=0 \
+    TMPDIR=/run/radarr-temp
 
 # Install dependencies
-RUN \
-  echo "**** install packages ****" && \
-  apk add -U --upgrade --no-cache \
+RUN apk add --no-cache \
     icu-libs \
     sqlite-libs \
     xmlstarlet
 
-# Create Radarr directory
+# Create directories for Radarr
 RUN mkdir -p /app/radarr/bin
 
-# Copy your custom build of Radarr into the container
-COPY ./radarr /app/radarr/bin
+# Copy your custom-built Radarr from the workflow
+COPY ./Radarr /app/radarr/bin
 
 # Set permissions
 RUN chmod +x /app/radarr/bin/Radarr
 
-# Create package info file
-RUN echo -e "UpdateMethod=docker\nBranch=custom\nPackageVersion=${VERSION}\nPackageAuthor=ncsufan8628" > /app/radarr/package_info
-
-# copy local files
-#COPY root/ /
-
 # Expose the default Radarr port
 EXPOSE 7878
 
-# Define the Radarr startup command
-CMD ["/app/radarr/bin/Radarr"]
+# Set default working directory
+WORKDIR /app/radarr/bin
+
+# Run Radarr
+CMD ["/app/radarr/bin/Radarr", "--no-browser", "-data=/config"]
