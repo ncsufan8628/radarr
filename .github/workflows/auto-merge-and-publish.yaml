@@ -1,4 +1,4 @@
-name: Auto Merge and Publish Radarr Fix
+name: Sync, Merge Fix, and Publish Radarr
 
 on:
   schedule:
@@ -6,37 +6,49 @@ on:
   workflow_dispatch: # Allows manual trigger
 
 jobs:
-  merge_fix:
+  sync_and_merge:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Radarr Repo
+      - name: Checkout Your Fork
         uses: actions/checkout@v4
         with:
-          repository: Radarr/Radarr
+          repository: ncsufan8628/radarr
+          token: ${{ secrets.GH_PAT }}
           fetch-depth: 0
 
-      - name: Get Latest Release Tag
-        id: latest_release
-        run: echo "tag=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
-
-      - name: Checkout Latest Release
-        run: git checkout ${{ env.tag }}
-
-      - name: Merge Fix Branch
+      - name: Set Git Identity
         run: |
-          git fetch origin pull/9820/head:fix-remux-wrong-detection
-          git merge fix-remux-wrong-detection --no-edit || echo "Merge conflicts detected"
-          git push origin HEAD:master
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
+
+      - name: Add Radarr Upstream
+        run: |
+          git remote add upstream https://github.com/Radarr/Radarr.git
+          git fetch upstream
+
+      - name: Sync with Latest Radarr Master
+        run: |
+          git checkout master
+          git merge --ff-only upstream/master || echo "Merge conflicts detected"
+          git push origin master
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+
+      - name: Merge Fix Branch (PR #9820)
+        run: |
+          git fetch upstream pull/9820/head:fix-remux-wrong-detection
+          git merge fix-remux-wrong-detection --no-edit || echo "Merge conflicts detected"
+          git push origin master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
 
   build_and_publish:
-    needs: merge_fix
+    needs: sync_and_merge
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Merged Code
+      - name: Checkout Updated Code
         uses: actions/checkout@v4
 
       - name: Log in to DockerHub
@@ -48,9 +60,9 @@ jobs:
       - name: Build and Tag Docker Image
         run: |
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/radarr:latest .
-          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/radarr:latest ${{ secrets.DOCKERHUB_USERNAME }}/radarr:${{ env.tag }}
+          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/radarr:latest ${{ secrets.DOCKERHUB_USERNAME }}/radarr:master
 
       - name: Push Docker Image
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/radarr:latest
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/radarr:${{ env.tag }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/radarr:master
