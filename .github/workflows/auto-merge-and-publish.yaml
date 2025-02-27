@@ -1,4 +1,4 @@
-name: Sync, Merge Fix, Build, and Publish Radarr
+name: Sync, Merge Fix, and Publish Radarr
 
 on:
   schedule:
@@ -39,7 +39,7 @@ jobs:
       - name: Sync with Latest Radarr Master
         run: |
           git fetch --all
-          git checkout -B master origin/master  # Ensures we are on the correct master
+          git checkout -B master origin/master
           git merge --ff-only upstream/master || echo "Merge conflicts detected"
           git push origin master
         env:
@@ -53,7 +53,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
 
-  build_and_publish:
+    build_and_publish:
     needs: sync_and_merge
     runs-on: ubuntu-latest
 
@@ -65,18 +65,21 @@ jobs:
           token: ${{ secrets.PA_TOKEN }}
           fetch-depth: 0
 
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: '8.0.x'
-
-      - name: Restore Dependencies
-        run: dotnet restore
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dotnet-sdk-8.0 jq
 
       - name: Build Radarr
         run: |
-          dotnet publish --configuration Release --runtime linux-x64 --self-contained false --output docker-build/Radarr
-          ls -lah docker-build/Radarr # Debug output to verify files exist
+          git submodule update --init --recursive
+          ./build.sh --target=linux-musl-x64
+          ls -l ./bin/linux-musl-x64/Release/net8.0/publish
+
+      - name: Prepare Docker Build Context
+        run: |
+          mkdir -p docker-build
+          cp -r bin/linux-musl-x64/Release/net8.0/publish docker-build/Radarr
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -86,7 +89,7 @@ jobs:
 
       - name: Build and Tag Docker Image
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/radarr:latest .
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/radarr:latest -f Dockerfile docker-build
           docker tag ${{ secrets.DOCKERHUB_USERNAME }}/radarr:latest ${{ secrets.DOCKERHUB_USERNAME }}/radarr:master
 
       - name: Push Docker Image
