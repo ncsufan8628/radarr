@@ -25,10 +25,10 @@ RUN \
 RUN mkdir -p /app/radarr/bin
 
 # Copy your custom build of Radarr into the container
-COPY ./Radarr /app/radarr/bin
+COPY ./radarr /app/radarr/bin
 
 # Set permissions
-RUN chmod +x /app/radarr/bin/radarr
+RUN chmod +x /app/radarr/bin/Radarr
 
 # Create package info file
 RUN echo -e "UpdateMethod=docker\nBranch=custom\nPackageVersion=${VERSION}\nPackageAuthor=ncsufan8628" > /app/radarr/package_info
