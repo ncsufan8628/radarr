@@ -5,36 +5,31 @@ FROM ghcr.io/linuxserver/baseimage-alpine:3.21
 # Set version label
 ARG BUILD_DATE
 ARG VERSION
-ARG RADARR_RELEASE
-LABEL build_version="Custom Radarr version:- ${VERSION} Build-date:- ${BUILD_DATE}"
+LABEL build_version="Custom Radarr Build - ${VERSION} (${BUILD_DATE})"
 LABEL maintainer="ncsufan8628"
 
-# Set environment variables
-ARG RADARR_BRANCH="master"
+# Environment settings
 ENV XDG_CONFIG_HOME="/config/xdg" \
   COMPlus_EnableDiagnostics=0 \
   TMPDIR=/run/radarr-temp
 
 # Install dependencies
-RUN apk add --no-cache \
-    icu-libs \
-    sqlite-libs \
-    xmlstarlet
+RUN apk add --no-cache icu-libs sqlite-libs xmlstarlet
 
-# Create application directory
+# Create required directories
 RUN mkdir -p /app/radarr/bin
 
-# Copy your prebuilt Radarr binary into the container
-COPY ./docker-build/Radarr/ /app/radarr/bin/
+# Copy your custom-built Radarr into the container
+COPY ./docker-build/Radarr /app/radarr/bin
 
-# Set permissions
-RUN chmod +x /app/radarr/bin/Radarr
+# Set proper permissions
+RUN chmod -R 755 /app/radarr/bin
 
 # Expose the default Radarr port
 EXPOSE 7878
 
-# Set volume for configuration persistence
+# Define volume
 VOLUME /config
 
-# Define the entrypoint
+# Set the entrypoint
 CMD ["/app/radarr/bin/Radarr"]
