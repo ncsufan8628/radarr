@@ -10,11 +10,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Debug Token Availability
+        run: |
+          if [ -z "${{ secrets.PA_TOKEN }}" ]; then
+            echo "❌ PA_TOKEN is NOT set!"
+            exit 1
+          else
+            echo "✅ PA_TOKEN is set!"
+          fi
+
       - name: Checkout Your Fork
         uses: actions/checkout@v4
         with:
           repository: ncsufan8628/radarr
-          token: ${{ secrets.PA_TOKEN }} # Updated token reference
+          token: ${{ secrets.PA_TOKEN }} # Ensure token is correctly referenced
           fetch-depth: 0
 
       - name: Set Git Identity
@@ -52,7 +61,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ncsufan8628/radarr
-          token: ${{ secrets.PA_TOKEN }} # Updated token reference
+          token: ${{ secrets.PA_TOKEN }}
           fetch-depth: 0
 
       - name: Log in to DockerHub

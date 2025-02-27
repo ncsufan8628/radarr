@@ -1,5 +1,3 @@
-- name: Debug Token Availability
-  run: |
     if [[ -z "${{ secrets.PA_TOKEN }}" ]]; then
       echo "PA_TOKEN is NOT set!"
       exit 1
