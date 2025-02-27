@@ -1,0 +1,56 @@
+name: Auto Merge and Publish Radarr Fix
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # Runs daily at 3 AM UTC
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  merge_fix:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Radarr Repo
+        uses: actions/checkout@v4
+        with:
+          repository: Radarr/Radarr
+          fetch-depth: 0
+
+      - name: Get Latest Release Tag
+        id: latest_release
+        run: echo "tag=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+
+      - name: Checkout Latest Release
+        run: git checkout ${{ env.tag }}
+
+      - name: Merge Fix Branch
+        run: |
+          git fetch origin pull/9820/head:fix-remux-wrong-detection
+          git merge fix-remux-wrong-detection --no-edit || echo "Merge conflicts detected"
+          git push origin HEAD:master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build_and_publish:
+    needs: merge_fix
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Merged Code
+        uses: actions/checkout@v4
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Tag Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/radarr:latest .
+          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/radarr:latest ${{ secrets.DOCKERHUB_USERNAME }}/radarr:${{ env.tag }}
+
+      - name: Push Docker Image
+        run: |
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/radarr:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/radarr:${{ env.tag }}
