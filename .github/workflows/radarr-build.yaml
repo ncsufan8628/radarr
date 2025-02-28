@@ -1,83 +1,46 @@
-name: Build and Release Radarr
+name: Radarr Unraid Build
 
 on:
-  workflow_dispatch:
-  schedule:
-    - cron: '0 3 * * *'  # Runs daily at 3 AM UTC
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: alpine-latest  # Use Alpine runner instead of Ubuntu
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          repository: ncsufan8628/radarr
-          token: ${{ secrets.PA_TOKEN }}
-          fetch-depth: 0
-          submodules: recursive
-
       - name: Install Dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y dotnet-sdk-8.0 jq musl-dev gcc g++ make libssl-dev
-          dotnet --version
+          apk add --no-cache bash curl git nodejs npm dotnet8-sdk icu-libs
+          npm install -g yarn
 
-      - name: Build Radarr
+      - name: Clone Radarr Repository
         run: |
-          git submodule update --init --recursive
-          chmod +x build.sh
-          ./build.sh --target=linux-musl-x64 2>&1 | tee build_output.log || {
-            echo "❌ Build failed! Dumping logs:"
-            cat build_output.log
-            exit 1
-          }
+          git clone --recursive https://github.com/ncsufan8628/radarr.git
+          cd radarr
+          git checkout main  # Adjust branch if needed
 
-      - name: Show Build Logs on Failure
-        if: failure()
-        run: cat build_output.log
-
-      - name: Debug Directory Structure
+      - name: Run Backend Build
         run: |
-          echo "🔍 Listing all files after build:"
-          find . -type f | sort
+          cd radarr
+          ./build.sh --backend -r linux-musl-x64 -f net8.0
 
-      - name: Find Build Output
+      - name: Verify Build Output
         run: |
-          OUTPUT_DIR=$(find ./bin -type d -name "publish" | head -n 1)
-          if [ -z "$OUTPUT_DIR" ]; then
-            echo "❌ No publish directory found!"
-            echo "📂 Debugging: Listing full directory structure"
-            find . | sort
-            exit 1
-          fi
-          echo "✅ Found build output at: $OUTPUT_DIR"
-          echo "OUTPUT_PATH=$OUTPUT_DIR" >> $GITHUB_ENV
-
-      - name: Archive Build Artifacts
-        run: |
-          if [ -d "$OUTPUT_PATH" ]; then
-            tar -czvf radarr-linux-musl-x64.tar.gz -C "$OUTPUT_PATH" .
+          cd radarr
+          if [ -d "_output/net8.0/linux-musl-x64/publish" ]; then
+            echo "Build completed successfully!"
+            ls -l _output/net8.0/linux-musl-x64/publish
           else
-            echo "❌ No valid output directory found!"
-            exit 1
+            echo "Error: Build output not found!" && exit 1
           fi
 
-      - name: Upload Build Artifact
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: radarr-linux-musl-x64
-          path: radarr-linux-musl-x64.tar.gz
-
-      - name: Create GitHub Release
-        if: github.event_name == 'workflow_dispatch'
-        uses: softprops/action-gh-release@v2
-        with:
-          files: radarr-linux-musl-x64.tar.gz
-          token: ${{ secrets.PA_TOKEN }}
-          tag_name: "nightly-${{ github.run_id }}"
-          name: "Nightly Build ${{ github.run_id }}"
-          body: "Automated nightly build of Radarr."
-          draft: false
-          prerelease: true
+          name: radarr-build
+          path: radarr/_output/net8.0/linux-musl-x64/publish/
