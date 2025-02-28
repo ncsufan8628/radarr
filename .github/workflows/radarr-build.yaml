@@ -6,22 +6,23 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: mcr.microsoft.com/dotnet/sdk:6.0-alpine  # Alpine-based .NET 6 image
+    
+  container:
+    image: mcr.microsoft.com/dotnet/sdk:6.0-alpine  # Alpine-based .NET 6 image
 
     steps:
+    
       - name: Checkout Your Fork
         uses: actions/checkout@v4
         with:
           repository: ncsufan8628/radarr
-          token: ${{ secrets.PA_TOKEN }}
+          token: ${{ secrets.PA_TOKEN }} # Ensure token is correctly referenced
           fetch-depth: 0
 
-      - name: Set Git Identity & Fix Ownership Issue
+      - name: Set Git Identity
         run: |
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
-          git config --global --add safe.directory /__w/radarr/radarr  # Fix ownership issue
 
       - name: Add Radarr Upstream
         run: |
@@ -31,20 +32,19 @@ jobs:
       - name: Sync with Latest Radarr Master
         run: |
           git fetch --all
-          git checkout -B master origin/master
+          git checkout -B master origin/master  # Ensures we are on the correct master
           git merge --ff-only upstream/master || echo "Merge conflicts detected"
           git push origin master
         env:
           GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
 
-      - name: Merge Fix Branch (PR #9815)
+      - name: Merge Fix Branch (PR #9820)
         run: |
-          git fetch upstream fix/9815-swap-determiner-on-movietitle:fix-9815
-          git checkout master
-          git merge fix-9815 --no-edit || echo "Merge conflicts detected"
+          git fetch upstream pull/9820/head:fix-remux-wrong-detection
+          git merge fix-remux-wrong-detection --no-edit || echo "Merge conflicts detected"
           git push origin master
         env:
-          GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PA_TOKEN }
 
       - name: Restore NuGet Packages
         run: dotnet restore src/Radarr.sln
