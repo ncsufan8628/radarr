@@ -6,10 +6,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     container:
       image: mcr.microsoft.com/dotnet/sdk:6.0-alpine  # Alpine-based .NET 6 image
 
     steps:
+    
       - name: Checkout Your Fork
         uses: actions/checkout@v4
         with:
@@ -21,9 +23,6 @@ jobs:
         run: |
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
-
-      - name: Mark Git Directory as Safe
-        run: git config --global --add safe.directory /__w/radarr/radarr
 
       - name: Add Radarr Upstream
         run: |
@@ -42,6 +41,7 @@ jobs:
       - name: Merge Fix Branch (PR #9820)
         run: |
           git fetch upstream pull/9820/head:fix-remux-wrong-detection
+          git checkout master
           git merge fix-remux-wrong-detection --no-edit || echo "Merge conflicts detected"
           git push origin master
         env:
