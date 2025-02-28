@@ -6,12 +6,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
-  container:
-    image: mcr.microsoft.com/dotnet/sdk:6.0-alpine  # Alpine-based .NET 6 image
+    container:
+      image: mcr.microsoft.com/dotnet/sdk:6.0-alpine  # Alpine-based .NET 6 image
 
     steps:
-    
       - name: Checkout Your Fork
         uses: actions/checkout@v4
         with:
@@ -44,7 +42,7 @@ jobs:
           git merge fix-remux-wrong-detection --no-edit || echo "Merge conflicts detected"
           git push origin master
         env:
-          GITHUB_TOKEN: ${{ secrets.PA_TOKEN }
+          GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
 
       - name: Restore NuGet Packages
         run: dotnet restore src/Radarr.sln
