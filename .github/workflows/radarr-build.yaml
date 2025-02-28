@@ -18,19 +18,26 @@ jobs:
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
 
+      - name: Add Upstream and Fetch
+        run: |
+          git remote add upstream https://github.com/Radarr/Radarr.git || echo "Upstream already exists"
+          git fetch upstream
+        env:
+          GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
+
       - name: Sync with Latest Radarr Master
         run: |
-          git fetch --all
           git checkout -B master origin/master
           git merge --ff-only upstream/master || echo "Merge conflicts detected"
           git push origin master
         env:
           GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
 
-      - name: Merge Fix Branch (PR #9820)
+      - name: Fetch and Merge PR #9815
         run: |
           git fetch upstream pull/9815/head:fix-9815
-          git merge fix-remux-wrong-detection --no-edit || echo "Merge conflicts detected"
+          git checkout master
+          git merge fix-9815 --no-edit || echo "Merge conflicts detected"
           git push origin master
         env:
           GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
