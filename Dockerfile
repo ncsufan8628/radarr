@@ -1,43 +1,40 @@
 # syntax=docker/dockerfile:1
-#hello
+
 FROM ghcr.io/linuxserver/baseimage-alpine:3.21
 
 # set version label
 ARG BUILD_DATE
 ARG VERSION
-LABEL build_version="Custom Radarr Build: ${VERSION} Build-date: ${BUILD_DATE}"
-LABEL maintainer="ncsufan8628"
+LABEL build_version="Linuxserver.io version:- ${VERSION} Build-date:- ${BUILD_DATE}"
+LABEL maintainer="Roxedus,thespad"
 
 # environment settings
 ENV XDG_CONFIG_HOME="/config/xdg" \
   COMPlus_EnableDiagnostics=0 \
   TMPDIR=/run/radarr-temp
 
-# Install dependencies
 RUN \
   echo "**** install packages ****" && \
   apk add -U --upgrade --no-cache \
     icu-libs \
     sqlite-libs \
-    xmlstarlet
-
-# Create Radarr directory
-RUN mkdir -p /app/radarr/bin
-
-# Copy your custom build of Radarr into the container
-COPY ./docker-build/Radarr /app/radarr/bin
-
-# Set permissions
-RUN chmod +x /app/radarr/bin/Radarr
-
-# Create package info file
-RUN echo -e "UpdateMethod=docker\nBranch=custom\nPackageVersion=${VERSION}\nPackageAuthor=ncsufan8628" > /app/radarr/package_info
+    xmlstarlet && \
+  echo "**** install radarr ****" && \
+  mkdir -p /app/radarr/bin && \
+  curl -L -o /tmp/radarr.tar.gz \
+    "https://github.com/ncsufan8628/radarr/releases/download/latest-build/radarr-build.tar.gz" && \
+  tar xzf /tmp/radarr.tar.gz -C /app/radarr/bin --strip-components=1 && \
+  echo -e "UpdateMethod=docker\nPackageVersion=${VERSION}\nPackageAuthor=[linuxserver.io](https://linuxserver.io)" > /app/radarr/package_info && \
+  printf "Linuxserver.io version: ${VERSION}\nBuild-date: ${BUILD_DATE}" > /build_version && \
+  echo "**** cleanup ****" && \
+  rm -rf \
+    /app/radarr/bin/Radarr.Update \
+    /tmp/*
 
 # copy local files
-#COPY root/ /
+COPY root/ /
 
-# Expose the default Radarr port
+# ports and volumes
 EXPOSE 7878
 
-# Define the Radarr startup command
-CMD ["/app/radarr/bin/Radarr"]
+VOLUME /config
