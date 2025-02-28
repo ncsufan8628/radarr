@@ -46,8 +46,10 @@ jobs:
         run: |
           git fetch upstream pull/9820/head:fix-remux-wrong-detection
           git checkout master
-          git merge fix-remux-wrong-detection --no-edit || echo "Merge conflicts detected"
+          git merge --strategy-option theirs fix-remux-wrong-detection --no-edit || echo "Merge conflicts detected"
+          git commit -am "Auto-resolved merge conflicts by accepting PR changes" || true
           git push origin master
+
         env:
           GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
 
