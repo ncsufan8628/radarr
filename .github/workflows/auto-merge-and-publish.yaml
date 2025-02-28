@@ -75,9 +75,18 @@ jobs:
           git submodule update --init --recursive
           echo "🔍 Running build script..."
           chmod +x build.sh
-          set -x  # Enable debug mode
-          ./build.sh --target=linux-musl-x64 | tee build_output.log
-          set +x  # Disable debug mode
+          
+          # Run build script & capture output in a log file
+          ./build.sh --target=linux-musl-x64 > build_output.log 2>&1 || {
+            echo "❌ Build failed! Dumping logs:"
+            cat build_output.log
+            exit 1
+          }
+
+      - name: Show Build Logs (If Build Fails)
+        if: failure()
+        run: cat build_output.log
+
 
       - name: Show Build Logs (If Build Fails)
         if: failure()
