@@ -17,10 +17,11 @@ jobs:
           token: ${{ secrets.PA_TOKEN }}
           fetch-depth: 0
 
-      - name: Set Git Identity
+      - name: Set Git Identity & Fix Ownership Issue
         run: |
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
+          git config --global --add safe.directory /__w/radarr/radarr  # Fix ownership issue
 
       - name: Add Radarr Upstream
         run: |
