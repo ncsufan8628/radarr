@@ -68,7 +68,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y dotnet-sdk-8.0 jq
+          sudo apt-get install -y dotnet-sdk-6.0 jq
 
       - name: Build Radarr
         run: |
