@@ -1,4 +1,4 @@
-name: Merge PR, Build, and Release Radarr
+name: Sync, Merge PR, Build, and Release Radarr
 
 on:
   push:
@@ -13,16 +13,28 @@ jobs:
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Add Upstream Repository
-        run: git remote add upstream https://github.com/tempcvrohch/Radarr.git
+        run: git remote add upstream https://github.com/Radarr/Radarr.git
 
-      - name: Fetch and Merge PR Branch
+      - name: Sync with Latest Radarr Master
         run: |
-          git fetch upstream fix/9815-swap-determiner-on-movietitle
-          git checkout master
-          git merge upstream/fix/9815-swap-determiner-on-movietitle --no-edit || echo "Merge conflicts detected"
+          git fetch --all
+          git checkout -B master origin/master
+          git merge --ff-only upstream/master || echo "Merge conflicts detected"
           git push origin master
+        env:
+          GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
+
+      - name: Merge Fix Branch (PR #9815)
+        run: |
+          git fetch https://github.com/tempcvrohch/Radarr.git fix/9815-swap-determiner-on-movietitle
+          git merge FETCH_HEAD --no-edit || echo "Merge conflicts detected"
+          git push origin master
+        env:
+          GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
 
       - name: Set Up .NET
         uses: actions/setup-dotnet@v4
