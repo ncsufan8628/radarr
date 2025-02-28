@@ -1,25 +1,27 @@
-name: Build Radarr
+name: Build Radarr with PR #9815
 
 on:
-  workflow_dispatch: # Allows manual trigger
+  workflow_dispatch: # Allows manual triggering
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Your Fork
+    
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Add Upstream Remote and Fetch
+      - name: Configure Git
         run: |
-          git remote add upstream https://github.com/Radarr/Radarr.git || true
-          git fetch upstream
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
 
       - name: Sync with Latest Radarr Master
         run: |
+          git remote add upstream https://github.com/Radarr/Radarr.git || true
+          git fetch upstream
           git checkout -B master origin/master
           git merge --ff-only upstream/master || echo "Merge conflicts detected"
           git push origin master
@@ -28,41 +30,34 @@ jobs:
 
       - name: Merge Fix Branch (PR #9815)
         run: |
-          git fetch upstream fix/9815-swap-determiner-on-movietitle:fix-9815
+          git fetch upstream pull/9815/head:fix-9815
           git checkout master
           git merge fix-9815 --no-edit || echo "Merge conflicts detected"
           git push origin master
         env:
           GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
 
-      - name: Install .NET 6 SDK
+      - name: Install Dependencies
         run: |
           sudo apt update
           sudo apt install -y dotnet-sdk-6.0
 
-      - name: Restore Dependencies
+      - name: Restore NuGet Packages
         run: dotnet restore src/Radarr.sln
 
       - name: Build Radarr
-        run: |
-          mkdir -p _artifacts/linux-musl-x64/net6.0/Radarr
-          dotnet publish src/Radarr.sln -c Release -r linux-musl-x64 --self-contained false -f net6.0 -o _artifacts/linux-musl-x64/net6.0/Radarr
+        run: dotnet publish src/Radarr.sln --configuration Release --framework net6.0 --output ./output
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: radarr-linux-musl-x64
-          path: _artifacts/linux-musl-x64/net6.0/Radarr
-          retention-days: 7
+          name: Radarr-Build
+          path: ./output
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: nightly-${{ github.run_number }}
-          name: Radarr Nightly Build # Adjust as needed
-          body: "Automated nightly build of Radarr with latest changes."
-          draft: false
-          prerelease: true
-          files: _artifacts/linux-musl-x64/net6.0/Radarr/*
+          tag_name: latest-build
+          files: ./output/*
         env:
-          GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
