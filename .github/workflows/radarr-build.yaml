@@ -6,12 +6,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     container:
       image: mcr.microsoft.com/dotnet/sdk:6.0-alpine  # Alpine-based .NET 6 image
 
     steps:
-    
+
       - name: Checkout Your Fork
         uses: actions/checkout@v4
         with:
@@ -49,7 +49,6 @@ jobs:
           git merge --strategy-option theirs fix-remux-wrong-detection --no-edit || echo "Merge conflicts detected"
           git commit -am "Auto-resolved merge conflicts by accepting PR changes" || true
           git push origin master
-
         env:
           GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
 
@@ -59,7 +58,7 @@ jobs:
       - name: Build Radarr
         run: dotnet publish src/Radarr.sln --configuration Release --framework net6.0 --output ./output
 
-            - name: Archive Build Artifacts
+      - name: Archive Build Artifacts
         run: |
           tar -czvf radarr-build.tar.gz -C ./output .
 
@@ -76,4 +75,3 @@ jobs:
           files: radarr-build.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
