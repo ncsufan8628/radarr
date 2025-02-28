@@ -1,7 +1,7 @@
 name: Build and Release Radarr
 
 on:
-  workflow_dispatch:  # Allows manual triggering
+  workflow_dispatch:
   schedule:
     - cron: '0 3 * * *'  # Runs daily at 3 AM UTC
 
@@ -16,14 +16,13 @@ jobs:
           repository: ncsufan8628/radarr
           token: ${{ secrets.PA_TOKEN }}
           fetch-depth: 0
-          submodules: recursive  # Ensure submodules are initialized
+          submodules: recursive
 
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y dotnet-sdk-8.0 jq \
-            musl-dev gcc g++ make libssl-dev
-          dotnet --version  # Verify .NET is installed
+          sudo apt-get install -y dotnet-sdk-8.0 jq musl-dev gcc g++ make libssl-dev
+          dotnet --version
 
       - name: Build Radarr
         run: |
@@ -39,16 +38,22 @@ jobs:
         if: failure()
         run: cat build_output.log
 
+      - name: Debug Directory Structure
+        run: |
+          echo "🔍 Listing all files after build:"
+          find . -type f | sort
+
       - name: Find Build Output
         run: |
           OUTPUT_DIR=$(find ./bin -type d -name "publish" | head -n 1)
           if [ -z "$OUTPUT_DIR" ]; then
             echo "❌ No publish directory found!"
+            echo "📂 Debugging: Listing full directory structure"
+            find . | sort
             exit 1
           fi
           echo "✅ Found build output at: $OUTPUT_DIR"
           echo "OUTPUT_PATH=$OUTPUT_DIR" >> $GITHUB_ENV
-        shell: bash
 
       - name: Archive Build Artifacts
         run: |
