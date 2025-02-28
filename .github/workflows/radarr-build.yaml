@@ -6,13 +6,15 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/dotnet/sdk:6.0-alpine  # Alpine-based .NET 6 image
+
     steps:
-    
       - name: Checkout Your Fork
         uses: actions/checkout@v4
         with:
           repository: ncsufan8628/radarr
-          token: ${{ secrets.PA_TOKEN }} # Ensure token is correctly referenced
+          token: ${{ secrets.PA_TOKEN }}
           fetch-depth: 0
 
       - name: Set Git Identity
@@ -28,29 +30,20 @@ jobs:
       - name: Sync with Latest Radarr Master
         run: |
           git fetch --all
-          git checkout -B master origin/master  # Ensures we are on the correct master
+          git checkout -B master origin/master
           git merge --ff-only upstream/master || echo "Merge conflicts detected"
           git push origin master
         env:
           GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
 
-      - name: Merge Fix Branch (PR #9820)
+      - name: Merge Fix Branch (PR #9815)
         run: |
-          git fetch upstream pull/9820/head:fix-remux-wrong-detection
-          git merge fix-remux-wrong-detection --no-edit || echo "Merge conflicts detected"
+          git fetch upstream fix/9815-swap-determiner-on-movietitle:fix-9815
+          git checkout master
+          git merge fix-9815 --no-edit || echo "Merge conflicts detected"
           git push origin master
         env:
           GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
-
-      - name: Install .NET 6 SDK
-        run: |
-          sudo apt update
-          sudo apt install -y wget apt-transport-https
-          wget https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-          sudo dpkg -i packages-microsoft-prod.deb
-          rm packages-microsoft-prod.deb
-          sudo apt update
-          sudo apt install -y dotnet-sdk-6.0
 
       - name: Restore NuGet Packages
         run: dotnet restore src/Radarr.sln
