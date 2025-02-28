@@ -52,11 +52,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
 
+      - name: Clear NuGet Cache
+        run: dotnet nuget locals all --clear
+
       - name: Restore NuGet Packages
         run: dotnet restore src/Radarr.sln
 
       - name: Build Radarr
-        run: dotnet publish src/Radarr.sln --configuration Release --framework net6.0 --output ./output
+        run: dotnet publish src/Radarr.sln --configuration Release --framework net6.0 --output ./output --disable-parallel
 
       - name: Archive Build Artifacts
         run: |
