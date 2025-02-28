@@ -31,21 +31,7 @@ jobs:
             cat build_output.log
             exit 1
           }
-
-      - name: Show Build Logs (If Build Fails)
-        if: failure()
-        run: cat build_output.log
-
-      - name: Find Build Output
-        run: |
-          OUTPUT_DIR=$(find ./bin -type d -name "publish" | head -n 1)
-          if [ -z "$OUTPUT_DIR" ]; then
-            echo "❌ No publish directory found!"
-            exit 1
-          fi
-          echo "✅ Found build output at: $OUTPUT_DIR"
-          echo "OUTPUT_PATH=$OUTPUT_DIR" >> $GITHUB_ENV
-
+          
       - name: Archive Build Artifacts
         run: |
           tar -czvf radarr-linux-musl-x64.tar.gz -C $OUTPUT_PATH .
