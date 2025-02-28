@@ -19,10 +19,12 @@ jobs:
         run: |
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
+
       - name: Add Radarr Upstream
         run: |
           git remote add upstream https://x-access-token:${{ secrets.PA_TOKEN }}@github.com/Radarr/Radarr.git
           git fetch upstream
+
       - name: Sync with Latest Radarr Master
         run: |
           git fetch --all
@@ -40,8 +42,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
 
-      - name: Install Dependencies
+      - name: Install .NET 6 SDK
         run: |
+          sudo apt update
+          sudo apt install -y wget apt-transport-https
+          wget https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+          sudo dpkg -i packages-microsoft-prod.deb
+          rm packages-microsoft-prod.deb
           sudo apt update
           sudo apt install -y dotnet-sdk-6.0
 
