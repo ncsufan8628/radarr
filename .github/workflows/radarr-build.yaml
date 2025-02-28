@@ -24,6 +24,10 @@ jobs:
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
 
+      - name: Fix Dubious Ownership Issue
+        run: |
+          git config --global --add safe.directory /__w/radarr/radarr
+
       - name: Add Radarr Upstream
         run: |
           git remote add upstream https://x-access-token:${{ secrets.PA_TOKEN }}@github.com/Radarr/Radarr.git
