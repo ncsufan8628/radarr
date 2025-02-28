@@ -20,23 +20,21 @@ jobs:
 
       - name: Sync with Latest Radarr Master
         run: |
-          git remote add upstream https://github.com/Radarr/Radarr.git || true
-          git fetch upstream
+          git fetch --all
           git checkout -B master origin/master
           git merge --ff-only upstream/master || echo "Merge conflicts detected"
           git push origin master
         env:
           GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
 
-      - name: Merge Fix Branch (PR #9815)
+      - name: Merge Fix Branch (PR #9820)
         run: |
-          git fetch upstream pull/9815/head:fix-9815
-          git checkout master
-          git merge fix-9815 --no-edit || echo "Merge conflicts detected"
+          git fetch upstream pull/9820/head:fix-remux-wrong-detection
+          git merge fix-remux-wrong-detection --no-edit || echo "Merge conflicts detected"
           git push origin master
         env:
           GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
-
+          
       - name: Install Dependencies
         run: |
           sudo apt update
