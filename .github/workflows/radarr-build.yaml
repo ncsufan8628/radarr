@@ -14,11 +14,14 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Merge PR #9820
+      - name: Add Upstream Repository
+        run: git remote add upstream https://github.com/tempcvrohch/Radarr.git
+
+      - name: Fetch and Merge PR Branch
         run: |
-          git fetch origin pull/9820/head:fix-remux-wrong-detection
+          git fetch upstream fix/9815-swap-determiner-on-movietitle
           git checkout master
-          git merge fix-remux-wrong-detection --no-edit || echo "Merge conflicts detected"
+          git merge upstream/fix/9815-swap-determiner-on-movietitle --no-edit || echo "Merge conflicts detected"
           git push origin master
 
       - name: Set Up .NET
