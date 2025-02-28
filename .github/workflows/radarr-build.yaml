@@ -1,34 +1,54 @@
-name: Build Radarr for Unraid
+name: Merge PR, Build, and Release Radarr
 
 on:
-  workflow_dispatch:  # Allows manual trigger
+  push:
+    branches:
+      - master
+  workflow_dispatch:  # Allows manual triggering
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # Uses Ubuntu, but we run Alpine inside Docker
-
-    container:
-      image: mcr.microsoft.com/dotnet/sdk:6.0-alpine  # Alpine-based .NET 6 image
+    runs-on: ubuntu-latest  # Change to alpine if needed
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Merge PR #9820
         run: |
-          apk add --no-cache nodejs yarn curl git bash icu-libs
+          git fetch origin pull/9820/head:fix-remux-wrong-detection
+          git checkout master
+          git merge fix-remux-wrong-detection --no-edit || echo "Merge conflicts detected"
+          git push origin master
 
-      - name: Install .NET dependencies
-        run: |
-          apk add --no-cache libgcc libstdc++ krb5-libs zlib
+      - name: Set Up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '6.0.x'
+
+      - name: Install Dependencies
+        run: dotnet restore src/Radarr.sln
 
       - name: Build Radarr
         run: |
-          chmod +x build.sh
-          ./build.sh --backend --frontend --packages -r linux-musl-x64 -f net6.0
+          mkdir -p _artifacts/linux-musl-x64/net6.0/Radarr
+          dotnet publish src/Radarr.sln -c Release -r linux-musl-x64 --self-contained false -o _artifacts/linux-musl-x64/net6.0/Radarr
 
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
         with:
-          name: radarr-build
-          path: _
+          tag_name: v${{ github.run_number }}
+          release_name: "Radarr Build #${{ github.run_number }}"
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Build to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: _artifacts/linux-musl-x64/net6.0/Radarr/*
+          tag_name: v${{ github.run_number }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
