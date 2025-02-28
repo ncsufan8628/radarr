@@ -16,25 +16,48 @@ jobs:
           repository: ncsufan8628/radarr
           token: ${{ secrets.PA_TOKEN }}
           fetch-depth: 0
-          submodules: recursive  # Ensures submodules are fetched
+          submodules: recursive  # Ensure submodules are initialized
 
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y dotnet-sdk-8.0 jq musl-dev
+          sudo apt-get install -y dotnet-sdk-8.0 jq \
+            musl-dev gcc g++ make libssl-dev
+          dotnet --version  # Verify .NET is installed
 
       - name: Build Radarr
         run: |
+          git submodule update --init --recursive
           chmod +x build.sh
-          ./build.sh --target=linux-musl-x64 > build_output.log 2>&1 || {
+          ./build.sh --target=linux-musl-x64 2>&1 | tee build_output.log || {
             echo "❌ Build failed! Dumping logs:"
             cat build_output.log
             exit 1
           }
 
+      - name: Show Build Logs on Failure
+        if: failure()
+        run: cat build_output.log
+
+      - name: Find Build Output
+        run: |
+          OUTPUT_DIR=$(find ./bin -type d -name "publish" | head -n 1)
+          if [ -z "$OUTPUT_DIR" ]; then
+            echo "❌ No publish directory found!"
+            exit 1
+          fi
+          echo "✅ Found build output at: $OUTPUT_DIR"
+          echo "OUTPUT_PATH=$OUTPUT_DIR" >> $GITHUB_ENV
+        shell: bash
+
       - name: Archive Build Artifacts
         run: |
-          tar -czvf radarr-linux-musl-x64.tar.gz -C $OUTPUT_PATH .
+          if [ -d "$OUTPUT_PATH" ]; then
+            tar -czvf radarr-linux-musl-x64.tar.gz -C "$OUTPUT_PATH" .
+          else
+            echo "❌ No valid output directory found!"
+            exit 1
+          fi
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
