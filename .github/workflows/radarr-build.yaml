@@ -21,7 +21,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y dotnet-sdk-8.0 jq
+          sudo apt-get install -y dotnet-sdk-8.0 jq musl-dev
 
       - name: Build Radarr
         run: |
@@ -31,7 +31,7 @@ jobs:
             cat build_output.log
             exit 1
           }
-          
+
       - name: Archive Build Artifacts
         run: |
           tar -czvf radarr-linux-musl-x64.tar.gz -C $OUTPUT_PATH .
