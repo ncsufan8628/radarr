@@ -29,12 +29,12 @@ jobs:
 
       - name: Merge Fix Branch (PR #9820)
         run: |
-          git fetch upstream pull/9820/head:fix-remux-wrong-detection
+          git fetch upstream pull/9815/head:fix-9815
           git merge fix-remux-wrong-detection --no-edit || echo "Merge conflicts detected"
           git push origin master
         env:
           GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
-          
+
       - name: Install Dependencies
         run: |
           sudo apt update
