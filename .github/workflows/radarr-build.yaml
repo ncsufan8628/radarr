@@ -52,14 +52,20 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
 
+      - name: Ensure No Previous Build Process is Running
+        run: pkill -f dotnet || true
+
+      - name: Clean Output Directory
+        run: rm -rf ./output _output || true
+
       - name: Clear NuGet Cache
         run: dotnet nuget locals all --clear
 
       - name: Restore NuGet Packages
-        run: dotnet restore src/Radarr.sln
+        run: dotnet restore src/Radarr.sln --no-cache
 
       - name: Build Radarr
-        run: dotnet publish src/Radarr.sln --configuration Release --framework net6.0 --output ./output --disable-parallel
+        run: dotnet publish src/Radarr.sln --configuration Release --framework net6.0 --output ./output --disable-parallel /p:CopyRetryCount=10 /p:CopyRetryDelayMilliseconds=500
 
       - name: Archive Build Artifacts
         run: |
