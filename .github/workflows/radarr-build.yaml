@@ -59,16 +59,21 @@ jobs:
       - name: Build Radarr
         run: dotnet publish src/Radarr.sln --configuration Release --framework net6.0 --output ./output
 
+            - name: Archive Build Artifacts
+        run: |
+          tar -czvf radarr-build.tar.gz -C ./output .
+
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Radarr-Build
-          path: ./output
+          path: radarr-build.tar.gz
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest-build
-          files: ./output/*
+          files: radarr-build.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
