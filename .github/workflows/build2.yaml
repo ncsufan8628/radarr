@@ -52,8 +52,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
 
-      - name: Install Bash (Alpine)
-        run: apk add --no-cache bash yarn
+      - name: Install Yarn 1.22.19
+        run: |
+          apk add --no-cache bash nodejs npm
+          npm install --global yarn@1.22.19
 
       - name: Build Radarr Using `build.sh`
         run: bash ./build.sh --target=linux-musl-x64 
