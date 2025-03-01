@@ -77,7 +77,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest-build
-          files: radarr-build.tar.gz
+          files: radarr-lastest-alpine.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
