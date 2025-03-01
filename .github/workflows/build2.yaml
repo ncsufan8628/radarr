@@ -58,7 +58,7 @@ jobs:
           npm install --global yarn@1.22.19
 
       - name: Build Radarr Using `build.sh`
-        run: bash ./build.sh --target=linux-musl-x64 
+        run: bash ./build.sh
 
       - name: Archive Build Artifacts
         run: |
