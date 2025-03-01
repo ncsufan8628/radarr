@@ -52,17 +52,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
 
-      - name: Ensure No Previous Build Process is Running
-        run: pkill -f dotnet || true
-
-      - name: Clean Output Directory
-        run: rm -rf ./output _output || true
-
-      - name: Make `build.sh` Executable
-        run: chmod +x build.sh
+      - name: Install Bash (Alpine)
+        run: apk add --no-cache bash
 
       - name: Build Radarr Using `build.sh`
-        run: ./build.sh
+        run: bash ./build.sh
 
       - name: Archive Build Artifacts
         run: |
