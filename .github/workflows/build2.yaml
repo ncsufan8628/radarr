@@ -64,6 +64,10 @@ jobs:
     #    run: |
     #      tar -czvf radarr-build.tar.gz -C ./output .
 
+      - name: Find Build Artifact
+        run: |
+          mv _output/radarr.*.tar.gz radarr-build.tar.gz
+
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -77,3 +81,4 @@ jobs:
           files: radarr-build.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
