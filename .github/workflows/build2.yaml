@@ -64,6 +64,9 @@ jobs:
     #    run: |
     #      tar -czvf radarr-build.tar.gz -C ./output .
 
+      - name: Debug Build Output
+        run: ls -R _output/ || echo "No files found"
+
       - name: Find Build Artifact
         run: |
           mv _output/radarr.*.tar.gz radarr-build.tar.gz
