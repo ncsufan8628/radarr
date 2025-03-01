@@ -53,7 +53,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
 
       - name: Install Bash (Alpine)
-        run: apk add --no-cache bash
+        run: apk add --no-cache bash yarn
 
       - name: Build Radarr Using `build.sh`
         run: bash ./build.sh
