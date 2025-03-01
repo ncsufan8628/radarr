@@ -60,9 +60,9 @@ jobs:
       - name: Build Radarr Using `build.sh`
         run: bash ./build.sh --backend --packages --frontend -f net6.0 -r linux-musl-x64
 
-      - name: Archive Build Artifacts
-        run: |
-          tar -czvf radarr-build.tar.gz -C ./output .
+    #  - name: Archive Build Artifacts
+    #    run: |
+    #      tar -czvf radarr-build.tar.gz -C ./output .
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
