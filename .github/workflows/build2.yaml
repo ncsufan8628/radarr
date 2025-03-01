@@ -71,13 +71,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Radarr-Build
-          path: Radarr-Build
+          path: radarr-latest-alpine.tar.gz
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest-build
-          files: radarr-lastest-alpine.tar.gz
+          files: radarr-latest-alpine.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
