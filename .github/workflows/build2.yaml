@@ -1,0 +1,83 @@
+name: Build Radarr with PR #9815
+
+on:
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    container:
+      image: mcr.microsoft.com/dotnet/sdk:6.0-alpine  # Alpine-based .NET 6 image
+
+    steps:
+
+      - name: Checkout Your Fork
+        uses: actions/checkout@v4
+        with:
+          repository: ncsufan8628/radarr
+          token: ${{ secrets.PA_TOKEN }} # Ensure token is correctly referenced
+          fetch-depth: 0
+
+      - name: Set Git Identity
+        run: |
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
+
+      - name: Fix Dubious Ownership Issue
+        run: |
+          git config --global --add safe.directory /__w/radarr/radarr
+
+      - name: Add Radarr Upstream
+        run: |
+          git remote add upstream https://x-access-token:${{ secrets.PA_TOKEN }}@github.com/Radarr/Radarr.git
+          git fetch upstream
+
+      - name: Sync with Latest Radarr Master
+        run: |
+          git fetch --all
+          git checkout -B master origin/master  # Ensures we are on the correct master
+          git merge --ff-only upstream/master || echo "Merge conflicts detected"
+          git push origin master
+        env:
+          GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
+
+      - name: Merge Fix Branch (PR #9820)
+        run: |
+          git fetch upstream pull/9820/head:fix-remux-wrong-detection
+          git checkout master
+          git merge --strategy-option theirs fix-remux-wrong-detection --no-edit || echo "Merge conflicts detected"
+          git commit -am "Auto-resolved merge conflicts by accepting PR changes" || true
+          git push origin master
+        env:
+          GITHUB_TOKEN: ${{ secrets.PA_TOKEN }}
+
+      - name: Ensure No Previous Build Process is Running
+        run: pkill -f dotnet || true
+
+      - name: Clean Output Directory
+        run: rm -rf ./output _output || true
+
+      - name: Make `build.sh` Executable
+        run: chmod +x build.sh
+
+      - name: Build Radarr Using `build.sh`
+        run: ./build.sh
+
+      - name: Archive Build Artifacts
+        run: |
+          tar -czvf radarr-build.tar.gz -C ./output .
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Radarr-Build
+          path: radarr-build.tar.gz
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest-build
+          files: radarr-build.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
