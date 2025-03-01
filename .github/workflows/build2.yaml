@@ -71,7 +71,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Radarr-Build
-          path: radarr-latest-alpine.tar.gz
+          path: Radarr-Build
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
