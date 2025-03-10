@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM ghcr.io/linuxserver/baseimage-alpine:3.21
+FROM alpine:latest
 
 # set version label
 ARG BUILD_DATE
@@ -19,6 +19,8 @@ RUN \
     icu-libs \
     sqlite-libs \
     xmlstarlet && \
+    gcompat &&\
+
   echo "**** install radarr ****" && \
   mkdir -p /app/radarr/bin && \
   curl -L -o /tmp/radarr.tar.gz \
@@ -32,7 +34,7 @@ RUN \
     /tmp/*
 
 # copy local files
-#COPY root/ /
+COPY root/ /
 
 # ports and volumes
 EXPOSE 7878
